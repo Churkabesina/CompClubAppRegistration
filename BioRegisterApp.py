@@ -1,0 +1,133 @@
+from PyQt6 import QtCore, QtGui, QtWidgets
+
+
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(539, 684)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(9)
+        MainWindow.setFont(font)
+        MainWindow.setStyleSheet("background-color: rgb(66, 66, 66);\n"
+"color: rgb(0, 170, 255);\n"
+"font: 75 14pt \"Arial\";")
+        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
+        self.centralwidget.setEnabled(True)
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(9)
+        self.centralwidget.setFont(font)
+        self.centralwidget.setStyleSheet("QPushButton {\n"
+"     background-color: rgb(52, 52, 52);\n"
+"     border-style: solid;\n"
+"     border-width: 2px;\n"
+"     border-radius: 10px;\n"
+"     border-color: rgb(0, 170, 255);\n"
+"     min-width: 10em;\n"
+" }\n"
+"\n"
+"QPushButton:pressed {\n"
+"     background-color: rgb(83, 83, 83);\n"
+"     border-style: solid;\n"
+" }")
+        self.centralwidget.setObjectName("centralwidget")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
+        self.verticalLayout.setSpacing(0)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.username_label = QtWidgets.QLabel(parent=self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.username_label.sizePolicy().hasHeightForWidth())
+        self.username_label.setSizePolicy(sizePolicy)
+        self.username_label.setMaximumSize(QtCore.QSize(16777215, 100))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(9)
+        self.username_label.setFont(font)
+        self.username_label.setStyleSheet("background-color: rgb(85, 85, 85);\n"
+"border-style: solid;\n"
+"border-radius: 10px;")
+        self.username_label.setText("")
+        self.username_label.setTextFormat(QtCore.Qt.TextFormat.AutoText)
+        self.username_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.username_label.setObjectName("username_label")
+        self.verticalLayout.addWidget(self.username_label)
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalLayout.addItem(spacerItem)
+        self.message_label = QtWidgets.QLabel(parent=self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.message_label.sizePolicy().hasHeightForWidth())
+        self.message_label.setSizePolicy(sizePolicy)
+        self.message_label.setStyleSheet("background-color: rgb(85, 85, 85);\n"
+"border-style: solid;\n"
+"border-radius: 10px;")
+        self.message_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.message_label.setObjectName("message_label")
+        self.verticalLayout.addWidget(self.message_label)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalLayout.addItem(spacerItem1)
+        self.frame = QtWidgets.QFrame(parent=self.centralwidget)
+        self.frame.setEnabled(True)
+        self.frame.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.frame.setFrameShadow(QtWidgets.QFrame.Shadow.Plain)
+        self.frame.setObjectName("frame")
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.frame)
+        self.horizontalLayout_2.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetDefaultConstraint)
+        self.horizontalLayout_2.setSpacing(0)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem2)
+        self.check_button = QtWidgets.QPushButton(parent=self.frame)
+        self.check_button.setEnabled(True)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.check_button.sizePolicy().hasHeightForWidth())
+        self.check_button.setSizePolicy(sizePolicy)
+        self.check_button.setMinimumSize(QtCore.QSize(224, 70))
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setPointSize(14)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(9)
+        font.setStyleStrategy(QtGui.QFont.StyleStrategy.PreferDefault)
+        self.check_button.setFont(font)
+        self.check_button.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
+        self.check_button.setStyleSheet("")
+        self.check_button.setObjectName("check_button")
+        self.horizontalLayout_2.addWidget(self.check_button)
+        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem3)
+        self.verticalLayout.addWidget(self.frame)
+        spacerItem4 = QtWidgets.QSpacerItem(20, 100, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Expanding)
+        self.verticalLayout.addItem(spacerItem4)
+        self.verticalLayout.setStretch(0, 1)
+        self.verticalLayout.setStretch(2, 1)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        MainWindow.setCentralWidget(self.centralwidget)
+
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+    def retranslateUi(self, MainWindow):
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.message_label.setText(_translate("MainWindow", "Для начала регистрации приложите палец"))
+        self.check_button.setText(_translate("MainWindow", "Проверка биометрии"))
