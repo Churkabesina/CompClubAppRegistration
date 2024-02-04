@@ -1,0 +1,6 @@
+git add --all подготовить файлы
+git status проверить
+git commit -m 'коммент' закоммитить
+git push отправить в хаб
+git pull origin master забрать с хаба
+git branch посмотреть в какой ветке сейчас
