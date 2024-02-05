@@ -1,46 +1,74 @@
-from PyQt6.QtCore import Qt, QEvent, QTimer, QThread
+from PyQt6.QtCore import Qt, QEvent, QTimer, QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 from BioRegisterApp import Ui_MainWindow
 import sys
 import requests
 from pyzkfp import ZKFP2
-import threading
 import time
 
 
+class Worker(QObject):
+    progress = pyqtSignal(int)
+    completed = pyqtSignal()
+    # zkfp2 = ZKFP2()
+    # zkfp2.Init()
+    # zkfp2.OpenDevice(0)
+
+    @pyqtSlot()
+    def scan_finger(self):
+        templates = []
+        for i in range(1, 4):
+            while True:
+                print('зашел в while')
+                # capture = Worker.zkfp2.AcquireFingerprint()
+                # if capture:
+                #     tmp, img = capture
+                #     templates.append(tmp)
+                time.sleep(5)
+                self.progress.emit(i)
+                print('progress emit послан!')
+                time.sleep(2)
+                break
+        # regTemp, regTempLen = Worker.zkfp2.DBMerge(*templates)
+        # print(regTemp)
+        print('функция отработала!')
+        self.completed.emit()
+
+
 class BioRegisterApp(QMainWindow):
+    request_worker = pyqtSignal()
+
     def __init__(self):
         super().__init__()
-        main_ui = Ui_MainWindow()
-        main_ui.setupUi(self)
-        main_ui.username_label.setText(username)
-        main_ui.check_button.setVisible(False)
-        # _thread = threading.Thread(target=scan)
+        self.main_ui = Ui_MainWindow()
+        self.main_ui.setupUi(self)
+        self.main_ui.username_label.setText(username)
+        self.main_ui.check_button.hide()
+        self.main_ui.check_button.clicked.connect(lambda: print("check"))
         if islinked:
-            main_ui.message_label.setText('Ваш аккаунт уже привязан')
-            main_ui.check_button.setVisible(True)
+            self.main_ui.message_label.setText('Ваш аккаунт уже привязан')
+            self.main_ui.check_button.show()
 
-    def scan_finger(self):
-        time.sleep(2)
-        self.main_ui.message_label.setText('1/3. ')
-            # templates = []
-            # a = 0
-            # for i in range(3):
-            #     while True:
-                    # capture = zkfp2.AcquireFingerprint()
-                    # if capture:
-                    #     tmp, img = capture
-                    #     templates.append(tmp)
-                    #     break
-                    # a += 1
-                    # print(a)
-                # self.main_ui.message_label.setText('1/3. ')
-            # regTemp, regTempLen = zkfp2.DBMerge(*templates)
+        self.worker = Worker()
+        self.worker_thread = QThread()
 
-            # # Store the template in the device's database
-            # finger_id = 1 # The id of the finger to be registered
-            # zkfp2.DBAdd(finger_id, regTemp)
-    
+        self.worker.progress.connect(self.update_scanning_status)
+        self.worker.completed.connect(self.complete_scanning)
+
+        self.request_worker.connect(self.worker.scan_finger)
+
+        self.worker.moveToThread(self.worker_thread)
+        self.worker_thread.start()
+
+    def update_scanning_status(self, status: int):
+        self.main_ui.message_label.setText(f'status: {status}/3')
+
+    def complete_scanning(self):
+        print('Сканирование завершено!')
+        self.main_ui.message_label.setText(f'Сканирование завершено!')
+        self.main_ui.check_button.show()
+        self.worker_thread.deleteLater()
+
 
 def request_api():
     session = requests.Session()
@@ -58,26 +86,19 @@ def request_api():
     response = session.get(f'http://185.35.130.253/api/users/{userid}/note')
     res = response.json()
     if len(res['result']) == 0:
-        flag = False
+        return username, False
     else:
-        flag = True
         print('Ваш аккаунт уже привязан')
-    return username, flag
+        return username, True
 
 
 if __name__ == '__main__':
-
-    # zkfp2 = ZKFP2()
-    # zkfp2.Init()
-    # zkfp2.OpenDevice(0)
 
     username, islinked = request_api()
     
     app = QApplication(sys.argv)
     main_window = BioRegisterApp()
-
-    t = threading.Thread(target=main_window.scan_finger)
-    t.start()
-
+    time.sleep(2)
+    main_window.request_worker.emit()
     main_window.show()
     sys.exit(app.exec())
