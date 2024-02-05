@@ -14,6 +14,7 @@ class Worker(QObject):
     progress = pyqtSignal(int)
     register_completed = pyqtSignal()
     compare_completed = pyqtSignal(bool)
+    compare_start = pyqtSignal(bool)
 
     # zkfp2 = ZKFP2()
     # zkfp2.Init()
@@ -43,10 +44,21 @@ class Worker(QObject):
     # Обработчик сигнала с BioRegisterApp
     @pyqtSlot()
     def compare_finger(self):
-        if True:
-            self.compare_completed.emit(True)
-        else:
-            self.compare_completed.emit(False)
+        self.compare_start.emit(True)
+        while True:
+            test = input()
+            if test == check_stat:
+                print('Совпало')
+                self.compare_completed.emit(True)
+                break
+            else:
+                self.compare_start.emit(False)
+                print('Не совпало, отправь ещё')
+                break
+        # if True:
+        #     self.compare_completed.emit(True)
+        # else:
+        #     self.compare_completed.emit(False)
 
 
 class BioRegisterApp(QMainWindow):
@@ -73,6 +85,7 @@ class BioRegisterApp(QMainWindow):
         self.worker.progress.connect(self.update_scanning_status)
         self.worker.register_completed.connect(self.complete_register_finger)
         self.worker.compare_completed.connect(self.complete_compare_finger)
+        self.worker.compare_start.connect(self.start_scan)
 
         self.request_worker_register.connect(self.worker.register_finger)
         self.request_worker_compare.connect(self.worker.compare_finger)
@@ -86,6 +99,13 @@ class BioRegisterApp(QMainWindow):
     # обработчик сигнала с Worker'a
     def update_scanning_status(self, status: int):
         self.main_ui.message_label.setText(f'status: {status}/3')
+    
+    # обработчик сигнала с Worker'a
+    def start_scan(self, status: bool):
+        if status:
+            self.main_ui.message_label.setText(f'Приложите палец для сравнения')
+        else:
+            self.main_ui.message_label.setText(f'Палец не совпал')
 
     # обработчик сигнала с Worker'a
     def complete_register_finger(self):
@@ -139,6 +159,8 @@ if __name__ == '__main__':
             # exit()
             username, islinked = 'User', False
     
+    check_stat = '123'
+
     app = QApplication(sys.argv)
     main_window = BioRegisterApp()
     main_window.show()
