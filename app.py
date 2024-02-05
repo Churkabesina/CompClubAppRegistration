@@ -87,9 +87,8 @@ def request_api():
     res = response.json()
     if len(res['result']) == 0:
         return username, False
-    else:
-        print('Ваш аккаунт уже привязан')
-        return username, True
+    print('Ваш аккаунт уже привязан')
+    return username, True
 
 
 if __name__ == '__main__':
