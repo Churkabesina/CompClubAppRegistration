@@ -1,3 +1,5 @@
+import time
+
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from BioRegisterApp import Ui_MainWindow
@@ -37,9 +39,10 @@ class Worker(QObject):
                         templates.append(tmp)
                         self.progress.emit(i)
                         print(f'progress: {i}/3')
-                    break
+                        time.sleep(0.2)
+                        break
             reg_temp, reg_temp_len = Worker.zkfp2.DBMerge(*templates)
-            reg_temp = str(reg_temp, encoding='utf-8')
+            reg_temp = reg_temp.decode()
             put_finger_tmp_to_db(userid, reg_temp)
         except Exception as e:
             write_error_log(e)
