@@ -9,6 +9,8 @@ from utils import write_error_log
 
 import sys
 
+import base64
+
 from pyzkfp import ZKFP2
 
 
@@ -41,9 +43,11 @@ class Worker(QObject):
                         print(f'progress: {i}/3')
                         time.sleep(0.2)
                         break
-            reg_temp, reg_temp_len = Worker.zkfp2.DBMerge(*templates)
-            reg_temp = reg_temp.decode()
-            put_finger_tmp_to_db(userid, reg_temp)
+            c_sharp_bytes, reg_temp_len = Worker.zkfp2.DBMerge(*templates)
+            reg_temp = bytes(c_sharp_bytes)
+            base64_bytes = base64.b64encode(reg_temp)
+            base64_str = base64_bytes.decode('utf-8')
+            put_finger_tmp_to_db(userid, base64_str)
         except Exception as e:
             write_error_log(e)
             exit()
@@ -54,14 +58,15 @@ class Worker(QObject):
     @pyqtSlot()
     def compare_finger(self):
         try:
-            tmp_from_db = get_finger_tmp_by_userid(userid=userid)
-            tmp_from_db = bytes(tmp_from_db, encoding='utf-8')
+            base64_str = get_finger_tmp_by_userid(userid=userid)
+            reg_temp_api = base64.b64decode(base64_str)
             while True:
                 capture = Worker.zkfp2.AcquireFingerprint()
                 if capture:
-                    tmp, img = capture
+                    c_sharp_bytes, img = capture
                     break
-            res = Worker.zkfp2.DBMatch(tmp_from_db, tmp)
+            reg_temp = bytes(c_sharp_bytes)
+            res = Worker.zkfp2.DBMatch(reg_temp_api, reg_temp)
         except Exception as e:
             write_error_log(e)
             exit()
@@ -124,6 +129,7 @@ class BioRegisterApp(QMainWindow):
         self.main_ui.check_button.setEnabled(True)
 
     def button_compare_finger_click(self):
+        self.main_ui.message_label.setText('Приложите палец')
         self.main_ui.check_button.setEnabled(False)
         self.request_worker_compare.emit()
 
