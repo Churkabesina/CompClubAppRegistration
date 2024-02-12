@@ -9,14 +9,15 @@ def write_error_log(e):
 
 
 def load_settings_register_app() -> dict[str, str]:
-    settings_names = ['ip', 'score_limit']
+    settings_names = ['ip', 'score_limit', 'port']
     re_pattern_setting = re.compile(r'\w+=\w.+')
     settings = dict()
 
     if not os.path.isfile('settings.ini'):
         with open('settings.ini', 'w', encoding='UTF-8') as f:
             f.write(f'score_limit=750\n'
-                    f'ip=185.35.130.253')
+                    f'ip=185.35.130.253\n'
+                    f'port=80')
 
     with open('settings.ini', 'r', encoding='UTF-8') as f:
         for line in f:
@@ -26,6 +27,9 @@ def load_settings_register_app() -> dict[str, str]:
 
     for name in settings_names:
         if name not in settings:
-            raise Exception('Неверно заданы настройки в settings.ini')
+            raise Exception('Неверно заданы настройки в settings.ini\n'
+                            '#score_limit=750\n'
+                            '#ip=<ip>\n'
+                            '#port=<your_port>')
 
     return settings

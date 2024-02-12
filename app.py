@@ -137,7 +137,7 @@ class BioRegisterApp(QMainWindow):
 if __name__ == '__main__':
     try:
         settings = load_settings_register_app()
-        ip = settings['ip']
+        ip = f'{settings["ip"]}:{settings["port"]}'
         score_limit = int(settings['score_limit'])
 
         # опрос на юзернейм
