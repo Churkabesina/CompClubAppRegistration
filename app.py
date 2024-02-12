@@ -1,11 +1,10 @@
-import time
-
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
+from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from BioRegisterApp import Ui_MainWindow
 
 from api_requests import get_finger_tmp_by_userid, put_finger_tmp_to_db, get_username_and_acc_linking
-from utils import write_error_log
+from utils import write_error_log, load_settings_register_app
 
 import sys
 
@@ -15,10 +14,14 @@ from pyzkfp import ZKFP2
 
 
 class Worker(QObject):
+    def __init__(self, u_name):
+        super().__init__()
+        self.username = u_name
+
     # кастомные сигналы для связи между потоками
-    progress = pyqtSignal(int)
     register_completed = pyqtSignal()
-    compare_completed = pyqtSignal(bool)
+    compare_completed = pyqtSignal(bool, int)
+    progress = pyqtSignal(int)
 
     try:
         zkfp2 = ZKFP2()
@@ -40,40 +43,37 @@ class Worker(QObject):
                         tmp, img = capture
                         templates.append(tmp)
                         self.progress.emit(i)
-                        print(f'progress: {i}/3')
-                        time.sleep(0.2)
                         break
-            c_sharp_bytes, reg_temp_len = Worker.zkfp2.DBMerge(*templates)
-            reg_temp = bytes(c_sharp_bytes)
-            base64_bytes = base64.b64encode(reg_temp)
-            base64_str = base64_bytes.decode('utf-8')
-            put_finger_tmp_to_db(userid, base64_str)
+            reg_temp, reg_temp_len = Worker.zkfp2.DBMerge(*templates)
+            python_reg_temp = bytes(reg_temp)
+            base64_temp = base64.b64encode(python_reg_temp).decode('utf-8')
+
+            put_finger_tmp_to_db(userid=userid, tmp=base64_temp, ip=ip)
         except Exception as e:
             write_error_log(e)
             exit()
-
         self.register_completed.emit()
 
     # Обработчик сигнала с BioRegisterApp
     @pyqtSlot()
     def compare_finger(self):
         try:
-            base64_str = get_finger_tmp_by_userid(userid=userid)
-            reg_temp_api = base64.b64decode(base64_str)
+            base64_tmp_from_db = get_finger_tmp_by_userid(userid=userid, ip=ip)
+            tmp_from_db = base64.b64decode(base64_tmp_from_db.encode('utf-8'))
             while True:
                 capture = Worker.zkfp2.AcquireFingerprint()
                 if capture:
-                    c_sharp_bytes, img = capture
+                    tmp, img = capture
                     break
-            reg_temp = bytes(c_sharp_bytes)
-            res = Worker.zkfp2.DBMatch(reg_temp_api, reg_temp)
+            python_tmp = bytes(tmp)
+            res = Worker.zkfp2.DBMatch(python_tmp, tmp_from_db)
         except Exception as e:
             write_error_log(e)
             exit()
-        if res == 1:
-            self.compare_completed.emit(True)
+        if res > score_limit:
+            self.compare_completed.emit(True, res)
         else:
-            self.compare_completed.emit(False)
+            self.compare_completed.emit(False, res)
 
 
 class BioRegisterApp(QMainWindow):
@@ -83,19 +83,20 @@ class BioRegisterApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.setWindowIcon(QtGui.QIcon('./src/fingerprint.png'))
         self.main_ui = Ui_MainWindow()
         self.main_ui.setupUi(self)
         self.main_ui.username_label.setText(username)
         self.main_ui.check_button.hide()
         self.main_ui.check_button.clicked.connect(self.button_compare_finger_click)
 
-        self.worker = Worker()
+        self.worker = Worker(username)
         self.worker_thread = QThread()
 
         # подключение кастомных сигналов к кастомным обработчикам
-        self.worker.progress.connect(self.update_scanning_status)
         self.worker.register_completed.connect(self.complete_register_finger)
         self.worker.compare_completed.connect(self.complete_compare_finger)
+        self.worker.progress.connect(self.register_progress)
 
         self.request_worker_register.connect(self.worker.register_finger)
         self.request_worker_compare.connect(self.worker.compare_finger)
@@ -112,21 +113,20 @@ class BioRegisterApp(QMainWindow):
             self.main_ui.check_button.show()
 
     # обработчик сигнала с Worker'a
-    def update_scanning_status(self, status: int):
-        self.main_ui.message_label.setText(f'status: {status}/3')
-
-    # обработчик сигнала с Worker'a
     def complete_register_finger(self):
-        self.main_ui.message_label.setText(f'Сканирование завершено!')
+        self.main_ui.message_label.setText(f'Ваш отпечаток зарегистрирован!')
         self.main_ui.check_button.show()
 
     # обработчик сигнала с Worker'a
-    def complete_compare_finger(self, is_ok: bool):
+    def complete_compare_finger(self, is_ok: bool, score: int):
         if is_ok:
-            self.main_ui.message_label.setText(f'Отпечатки совпадают, все хорошо!')
+            self.main_ui.message_label.setText(f'Отпечатки совпадают, все хорошо!\nscore: {score}')
         else:
-            self.main_ui.message_label.setText(f'Ваш отпечаток не совпадает :(')
+            self.main_ui.message_label.setText(f'Ваш отпечаток не совпадает :(\nscore: {score}')
         self.main_ui.check_button.setEnabled(True)
+
+    def register_progress(self, progress: int):
+        self.main_ui.message_label.setText(f'Этап {progress}/3')
 
     def button_compare_finger_click(self):
         self.main_ui.message_label.setText('Приложите палец')
@@ -136,10 +136,15 @@ class BioRegisterApp(QMainWindow):
 
 if __name__ == '__main__':
     try:
+        settings = load_settings_register_app()
+        ip = settings['ip']
+        score_limit = int(settings['score_limit'])
+
         # опрос на юзернейм
         with open(r'C:\Gizmo\userId.txt', 'r', encoding='UTF-8') as txt:
             userid = txt.read().strip()
-        username, islinked = get_username_and_acc_linking(userid=userid)
+        username, islinked = get_username_and_acc_linking(userid='3', ip=ip)
+
     except Exception as e:
         write_error_log(e)
         app = QApplication([])
@@ -153,5 +158,6 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
     main_window = BioRegisterApp()
+    main_window.setWindowTitle('UltraCyberArena - Регистрация отпечатка')
     main_window.show()
     sys.exit(app.exec())

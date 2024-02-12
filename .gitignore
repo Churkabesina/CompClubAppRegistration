@@ -6,4 +6,5 @@ log.txt
 build
 dist
 app.spec
-fingerprint.png
+test.py
+settings.ini

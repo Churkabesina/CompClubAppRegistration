@@ -8,12 +8,12 @@ def get_username_and_acc_linking(userid: str, ip: str = None, session_auth: tupl
     if session_auth is None:
         session.auth = ('admin', 'admin')
 
-    response = session.get(f'http://{ip}/api/users/{userid}', timeout=3)
+    response = session.get(f'http://{ip}/api/users/{userid}')
     res = response.json()
     username = res['result']['username']
 
     # опрос на проверку привязки аккaунта
-    response = session.get(f'http://{ip}/api/users/{userid}/note', timeout=3)
+    response = session.get(f'http://{ip}/api/users/{userid}/note')
     res = response.json()
     if len(res['result']) == 0:
         return username, False
@@ -28,7 +28,7 @@ def put_finger_tmp_to_db(userid: str, tmp: str, ip: str = None, session_auth: tu
         session.auth = ('admin', 'admin')
 
     body = {
-        'text': f'{tmp}',
+        'text': tmp,
         'severity': 0
     }
     # вставить текст отпечатка
