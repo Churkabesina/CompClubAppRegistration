@@ -1,10 +1,12 @@
 from PyQt6.QtCore import QThread, QObject, pyqtSignal, pyqtSlot
 from PyQt6 import QtGui
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
-from BioRegisterApp import Ui_MainWindow
 
-from api_requests import get_finger_tmp_by_userid, put_finger_tmp_to_db, get_username_and_acc_linking
-from utils import write_error_log, load_settings_register_app
+from ui.BioRegisterApp import Ui_MainWindow
+from ui import background
+
+import api_requests
+import utils
 
 import sys
 
@@ -28,7 +30,7 @@ class Worker(QObject):
         zkfp2.Init()
         zkfp2.OpenDevice(0)
     except Exception as e:
-        write_error_log(e)
+        utils.write_error_log(e)
         exit()
 
     # Обработчик сигнала с BioRegisterApp
@@ -48,9 +50,9 @@ class Worker(QObject):
             python_reg_temp = bytes(reg_temp)
             base64_temp = base64.b64encode(python_reg_temp).decode('utf-8')
 
-            put_finger_tmp_to_db(userid=userid, tmp=base64_temp, ip=ip)
+            API.put_finger_tmp_to_db(userid=userid, tmp=base64_temp)
         except Exception as e:
-            write_error_log(e)
+            utils.write_error_log(e)
             exit()
         self.register_completed.emit()
 
@@ -58,7 +60,7 @@ class Worker(QObject):
     @pyqtSlot()
     def compare_finger(self):
         try:
-            base64_tmp_from_db = get_finger_tmp_by_userid(userid=userid, ip=ip)
+            base64_tmp_from_db = API.get_finger_tmp_by_userid(userid=userid)
             tmp_from_db = base64.b64decode(base64_tmp_from_db.encode('utf-8'))
             while True:
                 capture = Worker.zkfp2.AcquireFingerprint()
@@ -68,9 +70,9 @@ class Worker(QObject):
             python_tmp = bytes(tmp)
             res = Worker.zkfp2.DBMatch(python_tmp, tmp_from_db)
         except Exception as e:
-            write_error_log(e)
+            utils.write_error_log(e)
             exit()
-        if res > score_limit:
+        if res > SCORE_LIMIT:
             self.compare_completed.emit(True, res)
         else:
             self.compare_completed.emit(False, res)
@@ -88,7 +90,9 @@ class BioRegisterApp(QMainWindow):
         self.main_ui.setupUi(self)
         self.main_ui.username_label.setText(username)
         self.main_ui.check_button.hide()
+        self.main_ui.delete_button.hide()
         self.main_ui.check_button.clicked.connect(self.button_compare_finger_click)
+        self.main_ui.delete_button.clicked.connect(self.button_delete_finger_click)
 
         self.worker = Worker(username)
         self.worker_thread = QThread()
@@ -111,11 +115,13 @@ class BioRegisterApp(QMainWindow):
         else:
             self.main_ui.message_label.setText('Ваш аккаунт уже привязан')
             self.main_ui.check_button.show()
+            self.main_ui.delete_button.show()
 
     # обработчик сигнала с Worker'a
     def complete_register_finger(self):
         self.main_ui.message_label.setText(f'Ваш отпечаток зарегистрирован!')
         self.main_ui.check_button.show()
+        self.main_ui.delete_button.show()
 
     # обработчик сигнала с Worker'a
     def complete_compare_finger(self, is_ok: bool, score: int):
@@ -124,6 +130,7 @@ class BioRegisterApp(QMainWindow):
         else:
             self.main_ui.message_label.setText(f'Ваш отпечаток не совпадает :(\nscore: {score}')
         self.main_ui.check_button.setEnabled(True)
+        self.main_ui.delete_button.setEnabled(True)
 
     def register_progress(self, progress: int):
         self.main_ui.message_label.setText(f'Этап {progress}/3')
@@ -131,30 +138,48 @@ class BioRegisterApp(QMainWindow):
     def button_compare_finger_click(self):
         self.main_ui.message_label.setText('Приложите палец')
         self.main_ui.check_button.setEnabled(False)
+        self.main_ui.delete_button.setEnabled(False)
         self.request_worker_compare.emit()
+
+    def button_delete_finger_click(self):
+        warning_msg = QMessageBox(self)
+        warning_msg.setStyleSheet("QMessageBox {background-color: rgb(56, 56, 56);}"
+                                  "QLabel {min_width: 100px;}"
+                                  "QPushButton {color: rgb(56, 56, 56);}")
+        warning_msg.setIcon(QMessageBox.Icon.Warning)
+        warning_msg.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+        warning_msg.button(QMessageBox.StandardButton.Ok).setText('Да')
+        warning_msg.button(QMessageBox.StandardButton.Cancel).setText('Нет')
+        warning_msg.setWindowTitle('Предупреждение')
+        warning_msg.setText('Вы уверены?')
+        button = warning_msg.exec()
+        if button == QMessageBox.StandardButton.Ok:
+            note_id = str(API.get_note_by_user_id(userid))
+            API.delete_fingerprint(user_id=userid, note_id=note_id)
+            self.main_ui.check_button.hide()
+            self.main_ui.delete_button.hide()
+            self.request_worker_register.emit()
+            self.main_ui.message_label.setText('Для начала регистрации приложите палец')
 
 
 if __name__ == '__main__':
     try:
-        settings = load_settings_register_app()
-        ip = f'{settings["ip"]}:{settings["port"]}'
-        score_limit = int(settings['score_limit'])
+        SETTINGS = utils.load_settings_app()
+        IP = f'{SETTINGS["ip"]}:{SETTINGS["port"]}'
+        SCORE_LIMIT = int(SETTINGS['score_limit'])
+        AUTH_DATA = (SETTINGS['login_api'], SETTINGS['password_api'])
+        API = api_requests.CompClubRequests(ip=IP,
+                                            limit_balance=float(SETTINGS['limit_balance']),
+                                            auth_data=AUTH_DATA,
+                                            product_ids=SETTINGS['product_ids'])
 
         # опрос на юзернейм
         with open(r'C:\Gizmo\userId.txt', 'r', encoding='UTF-8') as txt:
             userid = txt.read().strip()
-        username, islinked = get_username_and_acc_linking(userid='3', ip=ip)
-
+        username, islinked = API.get_username_and_acc_linking(userid=userid)
     except Exception as e:
-        write_error_log(e)
-        app = QApplication([])
-        error_msg = QMessageBox()
-        error_msg.setIcon(QMessageBox.Icon.Critical)
-        error_msg.setWindowTitle('Ошибка запуска')
-        error_msg.setText('Во время запуска произошла ошибка\n-> log.txt')
-        error_msg.buttonClicked.connect(lambda: app.exit())
-        error_msg.show()
-        sys.exit(app.exec())
+        utils.write_error_log(e)
+        utils.execute_error_msg()
 
     app = QApplication(sys.argv)
     main_window = BioRegisterApp()

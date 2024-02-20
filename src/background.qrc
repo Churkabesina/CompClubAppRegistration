@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="src">
+    <file>UltraLOGO.png</file>
+    <file>background.jpg</file>
+  </qresource>
+</RCC>
